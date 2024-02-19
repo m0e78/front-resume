@@ -7,6 +7,8 @@ import ProductList from './components/ProductList';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Orderlist from './components/Orderlist';
 import ProductDetails from './components/ProductDetails';
+import Register from './components/auth/Register';
+import Login from './components/auth/Login';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
           <Route path="/orderlist" element={<Orderlist />}></Route>
 
             <Route path='/orderlist/:id' element={<ProductDetails/>}></Route>
+            <Route path='/register' element={<Register/>}></Route>
+            <Route path='/login' element={<Login/>}></Route>
         </Routes>
 
       </Router>
