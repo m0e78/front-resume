@@ -9,40 +9,84 @@ import Modal from "react-bootstrap/Modal"
 
 const Orderlist = () => {
   const [products, setProducts] = useState([])
+  const [showModal, setShowModal] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState(null)
   const navigate = useNavigate()
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(
-          `http://localhost:4000/api/v1/productlist`
-        )
-        setProducts(response.data.products)
-        console.log(response.data.products) // This will log the updated state
-      } catch (error) {
-        console.log(error)
-      }
-    }
 
+  useEffect(() => {
     fetchData()
   }, [])
-  const [show, setShow] = useState(false)
 
-  const handleClose = () => setShow(false)
-  const handleShow = () => setShow(true)
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:4000/api/v1/productlist`
+      )
+      setProducts(response.data.products.reverse())
+      console.log(response.data.products)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setSelectedProduct(null) // Reset selected product after closing modal
+  }
+
+  const handleShowModal = (product = null) => {
+    setSelectedProduct(product)
+    setShowModal(true)
+  }
+
+  const handleSubmit = async (productData) => {
+    try {
+      if (selectedProduct) {
+        // If selectedProduct exists, it's an update operation
+        await axios.patch(
+          `http://localhost:4000/api/v1/productlist/${selectedProduct._id}`,
+          productData
+        )
+      } else {
+        // If selectedProduct doesn't exist, it's an add operation
+        await axios.post(
+          `http://localhost:4000/api/v1/productlist`,
+          productData
+        )
+      }
+      handleCloseModal()
+      fetchData()
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const handleDeleteProduct = async (id) => {
+    try {
+      await axios.delete(`http://localhost:4000/api/v1/productlist/${id}`)
+      fetchData()
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   return (
-    <div className="content ">
+    <div className="content">
       <h1>Order List</h1>
-      <Button variant="warning" onClick={handleShow} className="modalButton">
+      <Button
+        variant="warning"
+        onClick={() => handleShowModal()}
+        className="modalButton">
         Add Product
       </Button>
       <Table striped bordered hover>
         <thead>
           <tr>
             <th>#</th>
-            <th>title</th>
-            <th>price</th>
-            <th>serie number</th>
-            <th>action</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Series Number</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -51,8 +95,7 @@ const Orderlist = () => {
               <td>{prod._id}</td>
               <td>{prod.name}</td>
               <td>{prod.price}$</td>
-              <td>{prod.serialcode}</td>
-
+              <td>{prod.series_number}</td>
               <td>
                 <img
                   onClick={() => navigate(`/orderlist/${prod._id}`)}
@@ -60,48 +103,77 @@ const Orderlist = () => {
                   src={info}
                   alt="info"
                 />
+                <Button
+                  variant="primary"
+                  className="mx-2"
+                  onClick={() => handleShowModal(prod)}>
+                  Update
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => handleDeleteProduct(prod._id)}>
+                  Delete
+                </Button>
               </td>
             </tr>
           ))}
         </tbody>
       </Table>
-
-      <Modal show={show} onHide={handleClose}>
+      <Modal show={showModal} onHide={handleCloseModal}>
         <Modal.Header closeButton>
-          <Modal.Title>Adding a Product</Modal.Title>
+          <Modal.Title>
+            {selectedProduct ? "Update Product" : "Add Product"}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const formData = new FormData(e.target)
+              const productData = Object.fromEntries(formData.entries())
+              handleSubmit(productData)
+            }}>
+            <Form.Group className="mb-3" controlId="formName">
               <Form.Label>Name</Form.Label>
-              <Form.Control type="text" placeholder="Enter a name" autoFocus />
+              <Form.Control
+                type="text"
+                placeholder="Enter a name"
+                defaultValue={selectedProduct ? selectedProduct.name : ""}
+                name="name"
+              />
             </Form.Group>
-            <Form.Group className="mb-3" controlId="exampleForm.ControlInput2">
+            <Form.Group className="mb-3" controlId="formPrice">
               <Form.Label>Price</Form.Label>
               <Form.Control
                 type="number"
                 placeholder="Enter a price"
-                autoFocus
+                defaultValue={selectedProduct ? selectedProduct.price : ""}
+                name="price"
               />
             </Form.Group>
-            <Form.Group className="mb-3" controlId="exampleForm.ControlInput3">
+            <Form.Group className="mb-3" controlId="formSeriesNumber">
               <Form.Label>Series Number</Form.Label>
               <Form.Control
                 type="number"
-                placeholder="Series Number"
-                autoFocus
+                placeholder="Enter a series number"
+                defaultValue={
+                  selectedProduct ? selectedProduct.series_number : ""
+                }
+                name="series_number"
               />
             </Form.Group>
+            <Form.Group className="mb-3" controlId="formSeriesNumber">
+
+            <Form.Control type="file" />
+            </Form.Group>
+            <Button variant="secondary" onClick={handleCloseModal}>
+              Close
+            </Button>
+            <Button variant="primary" type="submit">
+              {selectedProduct ? "Update" : "Add"}
+            </Button>
           </Form>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button variant="success" onClick={handleClose}>
-            Confirm
-          </Button>
-        </Modal.Footer>
       </Modal>
     </div>
   )
